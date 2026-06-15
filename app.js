@@ -723,8 +723,9 @@ function renderPhotos() {
     const url = URL.createObjectURL(p.blob); _photoUrls.push(url);
     const d = document.createElement('div'); d.className = 'thumb';
     d.innerHTML = `<img src="${url}" alt="Foto ${i + 1}"><button type="button" class="rm" aria-label="Foto entfernen">×</button>`;
+    d.querySelector('img').onclick = () => openLightbox(p.blob);
     d.querySelector('.rm').onclick = () => { draft.photos.splice(i, 1); renderPhotos(); };
-    row.insertBefore(d, $('btnAddPhoto'));
+    row.insertBefore(d, $('btnCamera'));
   });
 }
 
@@ -851,13 +852,25 @@ function openDetail(id) {
       <button class="btn secondary" id="btnEdit">Bearbeiten</button>
     </div>
     <button class="btn ghost" id="btnCloseDetail" style="margin-top:10px">Schließen</button>`;
-  if (e.photos && e.photos.length) { const dp = sheet.querySelector('#detailPhotos'); e.photos.forEach(p => { const img = document.createElement('img'); const u = URL.createObjectURL(p.blob); img.src = u; img.onload = () => URL.revokeObjectURL(u); dp.appendChild(img); }); }
+  if (e.photos && e.photos.length) { const dp = sheet.querySelector('#detailPhotos'); e.photos.forEach(p => { const img = document.createElement('img'); const u = URL.createObjectURL(p.blob); img.src = u; img.onload = () => URL.revokeObjectURL(u); img.onclick = () => openLightbox(p.blob); dp.appendChild(img); }); }
   sheet.querySelector('#btnDel').onclick = async () => { if (confirm('Diesen Eintrag löschen?')) { await dbDel(id); closeDetail(); refreshList(); refreshStats(); toast('Gelöscht'); } };
   sheet.querySelector('#btnEdit').onclick = () => { editEntry(e); closeDetail(); };
   sheet.querySelector('#btnCloseDetail').onclick = closeDetail;
   $('overlay').classList.add('open');
 }
 function closeDetail() { $('overlay').classList.remove('open'); }
+let lbUrl = null;
+function openLightbox(blob) {
+  if (lbUrl) URL.revokeObjectURL(lbUrl);
+  lbUrl = URL.createObjectURL(blob);
+  $('lightboxImg').src = lbUrl;
+  $('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  $('lightbox').classList.remove('open');
+  $('lightboxImg').src = '';
+  if (lbUrl) { URL.revokeObjectURL(lbUrl); lbUrl = null; }
+}
 function editEntry(e) {
   draft = JSON.parse(JSON.stringify({ ...e, photos: [] })); draft.photos = e.photos ? e.photos.map(p => ({ ...p })) : [];
   editingId = e.id; draft._regionTouched = true;
@@ -979,8 +992,11 @@ function bindUI() {
   $('hazardOverlay').onclick = e => { if (e.target === $('hazardOverlay')) closeHazardPicker(); };
   $('region').onchange = () => { draft.region = $('region').value; draft._regionTouched = true; };
   $('area').oninput = () => { draft._areaTouched = true; $('areaHint').hidden = true; };
-  $('btnAddPhoto').onclick = () => $('photoInput').click();
+  $('btnCamera').onclick = () => $('cameraInput').click();
+  $('btnGallery').onclick = () => $('photoInput').click();
+  $('cameraInput').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
   $('photoInput').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
+  $('lightbox').onclick = closeLightbox;
   $('ampelRange').oninput = () => setAmpel(+$('ampelRange').value);
   $('ampelClear').onclick = () => setAmpel(null);
   $('entryForm').onsubmit = saveEntry;

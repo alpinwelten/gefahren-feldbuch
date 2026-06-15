@@ -134,9 +134,11 @@
 
         <span class="lab" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Fotos</span>
         <div class="photo-row" id="photoRow">
-          <button type="button" class="photo-add" id="btnAddPhoto"><span>＋</span>Foto</button>
+          <button type="button" class="photo-add" id="btnCamera"><span>📷</span>Kamera</button>
+          <button type="button" class="photo-add" id="btnGallery"><span>🖼️</span>Galerie</button>
         </div>
-        <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment">
+        <input type="file" id="photoInput" accept="image/*" multiple>
 
         <span class="lab" style="font-size:13px;font-weight:600;display:block;margin:13px 0 6px;">Eigene Einschätzung</span>
         <div class="ampel-slider">
@@ -212,6 +214,12 @@
 <!-- Detail overlay -->
 <div class="overlay" id="overlay">
   <div class="sheet" id="detailSheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- Foto-Vollbild (Lightbox) -->
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" alt="Foto groß">
+  <button class="lb-close" id="lbClose" aria-label="Schließen">×</button>
 </div>
 
 <!-- Gefahrentyp-Picker -->
