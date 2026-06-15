@@ -137,14 +137,15 @@
         </div>
         <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
 
-        <span class="lab" style="font-size:13px;font-weight:600;display:block;margin:13px 0 6px;">Eigene Einschätzung (Ampel)</span>
-        <div class="ampel">
-          <input type="radio" name="ampel" id="ampel-gruen" value="gruen">
-          <label for="ampel-gruen" class="a-gruen"><span class="dot gruen"></span>Grün</label>
-          <input type="radio" name="ampel" id="ampel-gelb" value="gelb">
-          <label for="ampel-gelb" class="a-gelb"><span class="dot gelb"></span>Gelb</label>
-          <input type="radio" name="ampel" id="ampel-rot" value="rot">
-          <label for="ampel-rot" class="a-rot"><span class="dot rot"></span>Rot</label>
+        <span class="lab" style="font-size:13px;font-weight:600;display:block;margin:13px 0 6px;">Eigene Einschätzung</span>
+        <div class="ampel-slider">
+          <input type="range" id="ampelRange" min="0" max="100" step="5" value="50" class="unset" aria-label="Einschätzung von grün bis rot">
+          <div class="ampel-scale"><span>Grün</span><span>Gelb</span><span>Rot</span></div>
+          <div class="ampel-read">
+            <span class="ampel-dot" id="ampelDot"></span>
+            <span id="ampelLabel">Keine Einschätzung</span>
+            <button type="button" id="ampelClear" class="btn small ghost" hidden>Zurücksetzen</button>
+          </div>
         </div>
 
         <label class="field" style="margin-top:13px;">

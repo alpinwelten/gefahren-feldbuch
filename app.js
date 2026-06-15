@@ -161,7 +161,7 @@ function blankAuto() {
 }
 function newDraft() {
   draft = { id: uuid(), createdAt: nowISO(), updatedAt: nowISO(), hazard: HAZARDS[0].id, region: 'Alpen',
-    area:'', measures:{}, note:'', ampel:'', tags:[], photos:[], zone: null, auto: blankAuto() };
+    area:'', measures:{}, note:'', ampel:'', ampelValue: null, tags:[], photos:[], zone: null, auto: blankAuto() };
   editingId = null; autoEdit = false;
 }
 
@@ -241,8 +241,20 @@ function drawGps(p) {
 
 /* ---------- Gespeicherte Beobachtungen auf der Karte ---------- */
 const AMP_COLOR = { gruen: '#2E9E5B', gelb: '#E0A500', rot: '#C0392B' };
+const AMP_NAMES = ['Grün', 'Grün–Gelb', 'Gelb', 'Gelb–Rot', 'Rot'];
+function ampelColor(v) {
+  if (v == null) return '#5E6B6B';
+  v = Math.max(0, Math.min(100, v));
+  const g = [46, 158, 91], y = [224, 165, 0], r = [192, 57, 43];
+  let c1, c2, t;
+  if (v <= 50) { c1 = g; c2 = y; t = v / 50; } else { c1 = y; c2 = r; t = (v - 50) / 50; }
+  return 'rgb(' + c1.map((a, i) => Math.round(a + (c2[i] - a) * t)).join(',') + ')';
+}
+const ampelCat = v => (v == null ? '' : (v <= 33 ? 'gruen' : (v <= 66 ? 'gelb' : 'rot')));
+const ampelLabel = v => (v == null ? 'Keine Einschätzung' : `${AMP_NAMES[Math.min(4, Math.floor(v / 20))]} · ${v}`);
+function entryColor(e) { return (e && e.ampelValue != null) ? ampelColor(e.ampelValue) : (AMP_COLOR[e && e.ampel] || '#5E6B6B'); }
 function entryIcon(e) {
-  const c = AMP_COLOR[e.ampel] || '#5E6B6B';
+  const c = entryColor(e);
   return L.divIcon({ className: '', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -17],
     html: `<div class="map-pin" style="border-color:${c}">${hazardGlyph(e.hazard, 19)}</div>` });
 }
@@ -251,7 +263,7 @@ function renderEntriesOnMap() {
   entriesLayer.clearLayers();
   _entries.forEach(e => {
     if (e.zone && e.zone.length >= 3) {
-      const zc = AMP_COLOR[e.ampel] || '#5E6B6B';
+      const zc = entryColor(e);
       const poly = L.polygon(e.zone, { color: zc, weight: 2, fillColor: zc, fillOpacity: 0.14 });
       poly.on('click', () => openDetail(e.id));
       entriesLayer.addLayer(poly);
@@ -340,7 +352,7 @@ function renderDraftZone() {
   if (!map) return;
   if (draftZoneLayer) { map.removeLayer(draftZoneLayer); draftZoneLayer = null; }
   if (draft && draft.zone && draft.zone.length >= 3) {
-    const c = AMP_COLOR[draft.ampel] || '#006064';
+    const c = draft.ampelValue != null ? ampelColor(draft.ampelValue) : (AMP_COLOR[draft.ampel] || '#006064');
     draftZoneLayer = L.polygon(draft.zone, { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 }).addTo(map);
     $('zoneBar').hidden = false;
     $('zoneInfo').textContent = `Zone gezeichnet · ${polygonAreaHa(draft.zone).toFixed(1)} ha`;
@@ -677,13 +689,23 @@ function renderPhotos() {
 /* ============================================================
    Speichern / Formular ↔ Entwurf
    ============================================================ */
+function setAmpel(v) { draft.ampelValue = v; draft.ampel = ampelCat(v); setAmpelUI(v); renderDraftZone(); }
+function setAmpelUI(v) {
+  const r = $('ampelRange');
+  r.closest('.ampel-slider').style.setProperty('--thumb', ampelColor(v));
+  r.value = v == null ? 50 : v;
+  r.classList.toggle('unset', v == null);
+  $('ampelLabel').textContent = ampelLabel(v);
+  $('ampelClear').hidden = v == null;
+}
+
 function gatherForm() {
   draft.hazard = $('hazard').value;
   draft.region = $('region').value;
   draft.area = $('area').value.trim();
   draft.note = $('note').value.trim();
   draft.tags = $('tags').value.split(',').map(s => s.trim()).filter(Boolean);
-  const amp = document.querySelector('input[name="ampel"]:checked'); draft.ampel = amp ? amp.value : '';
+  draft.ampel = ampelCat(draft.ampelValue);
   draft.measures = {};
   HZ[draft.hazard].measures.forEach(m => { const v = $('m-' + m[0]); if (v && v.value !== '') draft.measures[m[0]] = M[m[0]].text ? v.value.trim() : parseFloat(v.value); });
   draft.updatedAt = nowISO();
@@ -705,7 +727,8 @@ function loadFormFromDraft() {
   $('area').value = draft.area || '';
   $('note').value = draft.note || '';
   $('tags').value = (draft.tags || []).join(', ');
-  document.querySelectorAll('input[name="ampel"]').forEach(r => r.checked = (r.value === draft.ampel));
+  if (draft.ampelValue == null && draft.ampel) draft.ampelValue = ({ gruen: 17, gelb: 50, rot: 83 })[draft.ampel] ?? null;
+  setAmpelUI(draft.ampelValue);
   renderMeasures(); renderPhotos(); renderAuto(); updateHazardPick(); renderDraftZone();
   autoEdit = false; $('autoEditor').hidden = true; $('btnAutoEdit').textContent = '✎ Bearbeiten'; $('btnAutoEdit').setAttribute('aria-expanded', 'false');
   $('btnReset').hidden = !editingId;
@@ -774,7 +797,7 @@ function openDetail(id) {
   const pending = e.auto && ['pending','failed'].includes([e.auto.wxStatus, e.auto.rivStatus, e.auto.avyStatus, e.auto.eleStatus].find(s => s === 'pending' || s === 'failed'));
   const linkHtml = (e.auto && e.auto.avyLink && (!e.auto.avyLevel)) ? `<p class="hint">Lawinenbulletin: <a href="${e.auto.avyLink.url}" target="_blank" rel="noopener">${escHtml(e.auto.avyLink.name)}</a></p>` : '';
   sheet.innerHTML = `<div class="grip"></div>
-    <div class="detail-head"><span class="hz-ico">${hazardGlyph(e.hazard, 30)}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ' · ' : ''}${e.ampel ? `<span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div></div></div>
+    <div class="detail-head"><span class="hz-ico">${hazardGlyph(e.hazard, 30)}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${e.ampelValue != null ? ampelLabel(e.ampelValue) : AMPEL[e.ampel]}</span>` : ''}</div></div></div>
     ${e.photos && e.photos.length ? `<div class="detail-photos" id="detailPhotos"></div>` : ''}
     ${e.note ? `<p style="white-space:pre-wrap;margin:.4em 0 .6em">${escHtml(e.note)}</p>` : ''}
     <dl class="kv">${detailRows(e).map(r => `<dt>${escHtml(r[0])}</dt><dd>${escHtml(r[1])}</dd>`).join('')}</dl>
@@ -801,7 +824,7 @@ function editEntry(e) {
 /* ============================================================
    Export / Import
    ============================================================ */
-const CSV_COLS = ['id','createdAt','hazard','region','area','lat','lon','accuracy_m','elevation_m','temp_C','wind_kmh','gust_kmh','windDir_deg','precip_mm','cloud_pct','weather','freezing_m','avalanche_level','avalanche_region','river_m3s','volume_m3','distance_m','length_m','width_m','height_m','slope_deg','snowDepth_cm','free','zone_ha','ampel','tags','note','photos'];
+const CSV_COLS = ['id','createdAt','hazard','region','area','lat','lon','accuracy_m','elevation_m','temp_C','wind_kmh','gust_kmh','windDir_deg','precip_mm','cloud_pct','weather','freezing_m','avalanche_level','avalanche_region','river_m3s','volume_m3','distance_m','length_m','width_m','height_m','slope_deg','snowDepth_cm','free','zone_ha','ampel','ampel_wert','tags','note','photos'];
 function entryToRow(e) {
   const a = e.auto || {}, m = e.measures || {};
   return { id:e.id, createdAt:e.createdAt, hazard:(HZ[e.hazard] ? HZ[e.hazard].name : e.hazard), region:e.region, area:e.area,
@@ -809,7 +832,7 @@ function entryToRow(e) {
     precip_mm:a.precip, cloud_pct:a.cloud, weather:wmoText(a.wcode), freezing_m:a.freezing, avalanche_level:a.avyLevel, avalanche_region:a.avyRegion, river_m3s:a.river,
     volume_m3:m.volume, distance_m:m.distance, length_m:m.length, width_m:m.width, height_m:m.height, slope_deg:m.slope, snowDepth_cm:m.snowDepth, free:m.free,
     zone_ha:(e.zone && e.zone.length >= 3 ? polygonAreaHa(e.zone).toFixed(2) : ''),
-    ampel:(AMPEL[e.ampel] || ''), tags:(e.tags || []).join('|'), note:e.note, photos:(e.photos ? e.photos.length : 0) };
+    ampel:(AMPEL[e.ampel] || ''), ampel_wert:(e.ampelValue != null ? e.ampelValue : ''), tags:(e.tags || []).join('|'), note:e.note, photos:(e.photos ? e.photos.length : 0) };
 }
 const csvCell = v => { if (v == null) return ''; const s = String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 async function exportCsv() {
@@ -914,6 +937,8 @@ function bindUI() {
   $('region').onchange = () => { draft.region = $('region').value; draft._regionTouched = true; };
   $('btnAddPhoto').onclick = () => $('photoInput').click();
   $('photoInput').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
+  $('ampelRange').oninput = () => setAmpel(+$('ampelRange').value);
+  $('ampelClear').onclick = () => setAmpel(null);
   $('entryForm').onsubmit = saveEntry;
   $('btnReset').onclick = () => { newDraft(); loadFormFromDraft(); toast('Verworfen'); };
   $('search').oninput = renderList;
