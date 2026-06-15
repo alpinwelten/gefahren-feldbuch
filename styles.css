@@ -247,14 +247,20 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--color-brand
 
 /* Einschätzungs-Schieber (Grün→Gelb→Rot) */
 .ampel-slider { --thumb: #5E6B6B; }
-#ampelRange { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; border-radius: 8px; margin: 6px 0 0; cursor: pointer;
-  background: linear-gradient(to right, #2E9E5B 0%, #E0A500 50%, #C0392B 100%); }
+#ampelRange { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 6px 0 0; background: transparent; cursor: pointer; accent-color: #C0392B; }
 #ampelRange:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 3px; }
-#ampelRange::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%;
-  background: var(--thumb); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer; }
+/* Track: Grün → Gelb → Rot (beide Engines) */
+#ampelRange::-webkit-slider-runnable-track { height: 14px; border-radius: 8px;
+  background: linear-gradient(to right, #2E9E5B 0%, #E0A500 50%, #C0392B 100%); }
+#ampelRange::-moz-range-track { height: 14px; border-radius: 8px;
+  background: linear-gradient(to right, #2E9E5B 0%, #E0A500 50%, #C0392B 100%); }
+#ampelRange::-moz-range-progress { height: 14px; border-radius: 8px; background: transparent; }
+/* Thumb */
+#ampelRange::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -7px;
+  border-radius: 50%; background: var(--thumb); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer; }
 #ampelRange::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--thumb);
   border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer; }
-#ampelRange.unset { filter: grayscale(.55) opacity(.8); }
+#ampelRange.unset { filter: grayscale(.5) opacity(.85); }
 .ampel-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-meta); margin-top: 4px; font-weight: 600; }
 .ampel-read { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-weight: 700; font-size: 14px; }
 .ampel-read .ampel-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--thumb); flex: 0 0 auto; }
