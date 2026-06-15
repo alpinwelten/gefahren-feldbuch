@@ -1,5 +1,5 @@
 /* Gefahren-Feldbuch · Service Worker */
-const VERSION = 'v1.8.0';
+const VERSION = 'v1.9.0';
 const CORE = 'gf-core-' + VERSION;
 const TILES = 'gf-tiles-' + VERSION;
 const TILE_CAP = 1600;

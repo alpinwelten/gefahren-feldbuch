@@ -272,13 +272,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--color-brand
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb .rm { position: absolute; top: 2px; right: 2px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0,0,0,.62); color: #fff; font-size: 16px; cursor: pointer; line-height: 28px; padding: 0; }
 .photo-add {
-  width: 78px; height: 78px; border: 1px solid var(--color-border); border-radius: 12px;
-  background: var(--color-surface); color: var(--color-brand); font-size: 12px; font-weight: 700; letter-spacing: .2px; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: 66px; min-height: 78px; border: 0; background: transparent; padding: 0; cursor: pointer;
+  color: var(--color-brand); font-size: 11.5px; font-weight: 700; letter-spacing: .2px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
 }
-.photo-add:active { background: #E3F0F0; }
-.pa-ico { width: 27px; height: 27px; fill: none; stroke: var(--color-brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.pa-ico .acf { fill: var(--color-brand); stroke: none; }
+.photo-add:active .pa-ico { transform: scale(.94); }
+.pa-ico { width: 54px; height: 54px; transition: transform .1s; filter: drop-shadow(0 1px 2.5px rgba(0,0,0,.22)); }
 input[type="file"] { display: none; }
 
 /* ---------- Buttons ---------- */
