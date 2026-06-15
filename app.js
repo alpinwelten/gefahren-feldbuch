@@ -126,7 +126,7 @@ const isOnline = () => navigator.onLine;
 /* ============================================================
    App-State
    ============================================================ */
-let map, baseLayers = {}, layersControl, posMarker, gpsCircle, gpsDot, entriesLayer;
+let map, baseLayers = {}, overlays = {}, layersControl, posMarker, gpsCircle, gpsDot, entriesLayer;
 let activeLayerKey = 'topo';
 let watchId = null, locationManual = false;
 let draft = null;          // aktueller Entwurf
@@ -160,7 +160,23 @@ function initMap() {
   baseLayers[TILES.osm.name] = makeLayer('osm');
   baseLayers[TILES.swisstopo.name] = makeLayer('swisstopo');
   entriesLayer = L.layerGroup().addTo(map);
-  layersControl = L.control.layers(baseLayers, { 'Beobachtungen': entriesLayer }, { collapsed: true }).addTo(map);
+  // Amtliche Lawinen-Overlays (key-frei, verifiziert) – standardmäßig aus, zuschaltbar
+  const CH_B = L.latLngBounds([[45.40, 5.14], [48.24, 11.48]]);   // Schweiz + Grenzsaum
+  const ST_B = L.latLngBounds([[46.09, 10.29], [47.13, 12.51]]);  // Südtirol
+  overlays = {
+    'Beobachtungen': entriesLayer,
+    'Lawinen-Gefahrenhinweis (CH, SilvaProtect)': L.tileLayer(
+      'https://wmts.geo.admin.ch/1.0.0/ch.bafu.silvaprotect-lawinen/default/current/3857/{z}/{x}/{y}.png',
+      { maxZoom: 18, opacity: 0.8, crossOrigin: true, bounds: CH_B, attribution: '© BAFU / SilvaProtect-CH' }),
+    'Hangneigung ≥ 30° (CH, SLF)': L.tileLayer(
+      'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.hangneigung-ueber_30/default/current/3857/{z}/{x}/{y}.png',
+      { maxZoom: 17, opacity: 0.55, crossOrigin: true, bounds: CH_B, attribution: '© swisstopo, Klassen nach SLF' }),
+    'Lawinenkataster / Lawinenstriche (Südtirol)': L.tileLayer.wms(
+      'https://geoservices2.civis.bz.it/geoserver/wms',
+      { layers: 'pczs-Hazards:EventsRegister-Avalanches-Areas', format: 'image/png', transparent: true,
+        opacity: 0.8, maxZoom: 20, crossOrigin: true, bounds: ST_B, attribution: '© Prov. Bozen-Südtirol, Zivilschutz (CC BY 4.0)' }),
+  };
+  layersControl = L.control.layers(baseLayers, overlays, { collapsed: true }).addTo(map);
   map.on('baselayerchange', e => {
     activeLayerKey = Object.keys(TILES).find(k => TILES[k].name === e.name) || 'topo';
   });

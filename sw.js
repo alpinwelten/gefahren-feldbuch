@@ -1,5 +1,5 @@
 /* Gefahren-Feldbuch · Service Worker */
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.2.0';
 const CORE = 'gf-core-' + VERSION;
 const TILES = 'gf-tiles-' + VERSION;
 const TILE_CAP = 1600;
@@ -23,7 +23,7 @@ const SHELL = [
   './icons/icon-maskable-512.png',
 ];
 
-const TILE_HOSTS = ['tile.opentopomap.org', 'server.arcgisonline.com', 'tile.openstreetmap.org', 'wmts.geo.admin.ch'];
+const TILE_HOSTS = ['tile.opentopomap.org', 'server.arcgisonline.com', 'tile.openstreetmap.org', 'wmts.geo.admin.ch', 'geoservices2.civis.bz.it'];
 const API_HOSTS = ['api.open-meteo.com', 'flood-api.open-meteo.com', 'aws.slf.ch', 'static.avalanche.report', 'api.avalanche.report', 'api01.nve.no'];
 
 self.addEventListener('install', e => {
