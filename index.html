@@ -134,8 +134,12 @@
 
         <span class="lab" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Fotos</span>
         <div class="photo-row" id="photoRow">
-          <button type="button" class="photo-add" id="btnCamera"><span>📷</span>Kamera</button>
-          <button type="button" class="photo-add" id="btnGallery"><span>🖼️</span>Galerie</button>
+          <button type="button" class="photo-add" id="btnCamera">
+            <svg class="pa-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M8.6 7l1-1.7h4.8l1 1.7"/><circle cx="12" cy="13" r="3.4"/><circle class="acf" cx="12" cy="13" r="1.15"/><circle class="acf" cx="17.2" cy="10" r=".7"/></svg>Kamera
+          </button>
+          <button type="button" class="photo-add" id="btnGallery">
+            <svg class="pa-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle class="acf" cx="8" cy="10" r="1.6"/><path d="M4 16.2l4-4 3 3 4-4.4 5 5.4"/></svg>Galerie
+          </button>
         </div>
         <input type="file" id="cameraInput" accept="image/*" capture="environment">
         <input type="file" id="photoInput" accept="image/*" multiple>
