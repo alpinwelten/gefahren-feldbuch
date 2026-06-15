@@ -120,6 +120,7 @@
           <label class="field">
             <span class="lab">Gebiet / Name</span>
             <input type="text" id="area" placeholder="z. B. Triftgletscher">
+            <span class="hint" id="areaHint" hidden></span>
           </label>
         </div>
 
@@ -140,7 +141,7 @@
         <span class="lab" style="font-size:13px;font-weight:600;display:block;margin:13px 0 6px;">Eigene Einschätzung</span>
         <div class="ampel-slider">
           <input type="range" id="ampelRange" min="0" max="100" step="5" value="50" class="unset" aria-label="Einschätzung von grün bis rot">
-          <div class="ampel-scale"><span>Grün</span><span>Gelb</span><span>Rot</span></div>
+          <div class="ampel-scale"><span>Sicher</span><span>Heikel</span><span>Nicht sicher</span></div>
           <div class="ampel-read">
             <span class="ampel-dot" id="ampelDot"></span>
             <span id="ampelLabel">Keine Einschätzung</span>
@@ -199,7 +200,8 @@
       <p class="hint" style="margin-top:0;line-height:1.5;">
         Alle Einträge/Fotos liegen ausschließlich lokal in diesem Browser (IndexedDB) – nichts wird hochgeladen.
         Bei Online-Abruf wird die <b>Position</b> an OpenStreetMap/OpenTopoMap/Esri/swisstopo (Karten),
-        Open-Meteo (Wetter/Höhe/Abfluss) und SLF/avalanche.report/NVE Varsom (Lawine) gesendet.
+        Open-Meteo (Wetter/Höhe/Abfluss), SLF/avalanche.report/NVE Varsom (Lawine) und
+        OSM Nominatim (Ortsname für Gebiet/Name) gesendet.
         Geh sparsam mit personenbezogenen Daten um.
       </p>
       <p class="hint" id="appMeta" style="margin-bottom:0;"></p>

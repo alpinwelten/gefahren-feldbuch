@@ -149,6 +149,7 @@ let map, baseLayers = {}, overlays = {}, layersControl, posMarker, gpsCircle, gp
 let activeLayerKey = 'topo';
 let watchId = null, locationManual = false;
 let drawing = false, drawPts = null, drawLine = null, draftZoneLayer = null, lastDrawPt = null;
+let geoTimer = null, lastGeoLat = null, lastGeoLon = null;
 let draft = null;          // aktueller Entwurf
 let editingId = null;      // bei Bearbeitung gesetzt
 let autoEdit = false;      // Auto-Felder im Bearbeiten-Modus?
@@ -222,6 +223,7 @@ function setLocation(lat, lon, accuracy, source, manual) {
   }
   renderAuto();
   enrichDraft();
+  maybeReverseGeocode(lat, lon);
 }
 function startGps() {
   if (!navigator.geolocation) { toast('Keine Geolocation verfügbar', true); return; }
@@ -241,7 +243,12 @@ function drawGps(p) {
 
 /* ---------- Gespeicherte Beobachtungen auf der Karte ---------- */
 const AMP_COLOR = { gruen: '#2E9E5B', gelb: '#E0A500', rot: '#C0392B' };
-const AMP_NAMES = ['Grün', 'Grün–Gelb', 'Gelb', 'Gelb–Rot', 'Rot'];
+const AMP_NAMES = ['Sicher', 'Eher sicher', 'Heikel', 'Eher unsicher', 'Nicht sicher'];
+const ampelBucket = v => AMP_NAMES[Math.min(4, Math.max(0, Math.floor(v / 20)))];
+function ampelText(e) {
+  if (e && e.ampelValue != null) return ampelBucket(e.ampelValue);
+  return e && e.ampel ? ({ gruen: AMP_NAMES[0], gelb: AMP_NAMES[2], rot: AMP_NAMES[4] })[e.ampel] : '';
+}
 function ampelColor(v) {
   if (v == null) return '#5E6B6B';
   v = Math.max(0, Math.min(100, v));
@@ -251,7 +258,7 @@ function ampelColor(v) {
   return 'rgb(' + c1.map((a, i) => Math.round(a + (c2[i] - a) * t)).join(',') + ')';
 }
 const ampelCat = v => (v == null ? '' : (v <= 33 ? 'gruen' : (v <= 66 ? 'gelb' : 'rot')));
-const ampelLabel = v => (v == null ? 'Keine Einschätzung' : `${AMP_NAMES[Math.min(4, Math.floor(v / 20))]} · ${v}`);
+const ampelLabel = v => (v == null ? 'Keine Einschätzung' : ampelBucket(v));
 function entryColor(e) { return (e && e.ampelValue != null) ? ampelColor(e.ampelValue) : (AMP_COLOR[e && e.ampel] || '#5E6B6B'); }
 function entryIcon(e) {
   const c = entryColor(e);
@@ -272,7 +279,7 @@ function renderEntriesOnMap() {
     const h = HZ[e.hazard] || { icon: '•', name: e.hazard };
     const m = L.marker([e.auto.lat, e.auto.lon], { icon: entryIcon(e), title: h.name });
     const node = document.createElement('div'); node.className = 'map-pop';
-    node.innerHTML = `<b>${hazardGlyph(e.hazard, 16)} ${escHtml(h.name)}</b><div class="m">${escHtml((e.region || '') + (e.area ? ' · ' + e.area : ''))}<br>${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div>`;
+    node.innerHTML = `<b>${hazardGlyph(e.hazard, 16)} ${escHtml(h.name)}</b><div class="m">${escHtml((e.region || '') + (e.area ? ' · ' + e.area : ''))}<br>${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${ampelText(e)}</span>` : ''}</div>`;
     const btn = document.createElement('button'); btn.className = 'btn small secondary'; btn.type = 'button'; btn.textContent = 'Detail öffnen';
     btn.onclick = () => { map.closePopup(); openDetail(e.id); };
     node.appendChild(btn);
@@ -405,6 +412,41 @@ async function fetchRiver(lat, lon) {
   const j = await r.json(), t = (j.daily && j.daily.time) || [], v = (j.daily && j.daily.river_discharge) || [];
   const today = new Date().toLocaleDateString('sv'); let i = t.indexOf(today); if (i < 0) i = 0;
   return { value: v[i] != null ? v[i] : null, ts: t[i] || today };
+}
+
+/* -- Gebiet/Name aus Position vorschlagen (Reverse-Geocoding, OSM Nominatim, key-frei) -- */
+function haversine(la1, lo1, la2, lo2) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLa = (la2 - la1) * rad, dLo = (lo2 - lo1) * rad;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * rad) * Math.cos(la2 * rad) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+async function reverseGeocode(lat, lon) {
+  try {
+    const u = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14&accept-language=de`;
+    const r = await fetch(u, { headers: { Accept: 'application/json' } });
+    if (!r.ok) return null;
+    const d = await r.json(), a = d.address || {};
+    let name = d.name || a.hamlet || a.village || a.isolated_dwelling || a.locality || a.suburb || a.neighbourhood || a.peak || a.natural || '';
+    const muni = a.town || a.city || a.municipality || a.village || a.hamlet;
+    if (!name) name = muni || a.county || a.state || '';
+    else if (muni && muni !== name) name += ', ' + muni;
+    return name || null;
+  } catch (e) { return null; }
+}
+function maybeReverseGeocode(lat, lon) {
+  if (!isOnline() || !draft || draft._areaTouched || ($('area').value || '').trim()) return;
+  if (lastGeoLat != null && haversine(lat, lon, lastGeoLat, lastGeoLon) < 120) return;
+  clearTimeout(geoTimer);
+  geoTimer = setTimeout(async () => {
+    if (draft._areaTouched || ($('area').value || '').trim()) return;
+    lastGeoLat = lat; lastGeoLon = lon;
+    const name = await reverseGeocode(lat, lon);
+    if (name && draft && !draft._areaTouched && !($('area').value || '').trim()) {
+      draft.area = name; $('area').value = name;
+      const h = $('areaHint'); h.textContent = '↳ Vorschlag aus Standort – anpassbar'; h.hidden = false;
+    }
+  }, 1200);
 }
 
 /* -- Lawinen: Dienst aus Position grob bestimmen -- */
@@ -725,6 +767,7 @@ function loadFormFromDraft() {
   $('hazard').value = draft.hazard;
   $('region').value = draft.region;
   $('area').value = draft.area || '';
+  $('areaHint').hidden = true;
   $('note').value = draft.note || '';
   $('tags').value = (draft.tags || []).join(', ');
   if (draft.ampelValue == null && draft.ampel) draft.ampelValue = ({ gruen: 17, gelb: 50, rot: 83 })[draft.ampel] ?? null;
@@ -766,7 +809,7 @@ function renderList() {
     const thumb = ph ? `<img data-blob="${e.id}" alt="">` : hazardGlyph(e.hazard, 28);
     return `<button class="entry" data-id="${e.id}">
       <span class="ph" data-ph="${e.id}">${thumb}</span>
-      <span class="body"><span class="top"><span class="hz">${escHtml(h.name)}</span>${e.ampel ? `<span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</span>
+      <span class="body"><span class="top"><span class="hz">${escHtml(h.name)}</span>${e.ampel ? `<span class="chip ${e.ampel}">${ampelText(e)}</span>` : ''}</span>
         <span class="meta">${escHtml(loc)}<span class="sep">·</span>${fmtDateTime(e.createdAt)}</span></span>
     </button>`;
   }).join('');
@@ -797,7 +840,7 @@ function openDetail(id) {
   const pending = e.auto && ['pending','failed'].includes([e.auto.wxStatus, e.auto.rivStatus, e.auto.avyStatus, e.auto.eleStatus].find(s => s === 'pending' || s === 'failed'));
   const linkHtml = (e.auto && e.auto.avyLink && (!e.auto.avyLevel)) ? `<p class="hint">Lawinenbulletin: <a href="${e.auto.avyLink.url}" target="_blank" rel="noopener">${escHtml(e.auto.avyLink.name)}</a></p>` : '';
   sheet.innerHTML = `<div class="grip"></div>
-    <div class="detail-head"><span class="hz-ico">${hazardGlyph(e.hazard, 30)}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${e.ampelValue != null ? ampelLabel(e.ampelValue) : AMPEL[e.ampel]}</span>` : ''}</div></div></div>
+    <div class="detail-head"><span class="hz-ico">${hazardGlyph(e.hazard, 30)}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${ampelText(e)}</span>` : ''}</div></div></div>
     ${e.photos && e.photos.length ? `<div class="detail-photos" id="detailPhotos"></div>` : ''}
     ${e.note ? `<p style="white-space:pre-wrap;margin:.4em 0 .6em">${escHtml(e.note)}</p>` : ''}
     <dl class="kv">${detailRows(e).map(r => `<dt>${escHtml(r[0])}</dt><dd>${escHtml(r[1])}</dd>`).join('')}</dl>
@@ -832,7 +875,7 @@ function entryToRow(e) {
     precip_mm:a.precip, cloud_pct:a.cloud, weather:wmoText(a.wcode), freezing_m:a.freezing, avalanche_level:a.avyLevel, avalanche_region:a.avyRegion, river_m3s:a.river,
     volume_m3:m.volume, distance_m:m.distance, length_m:m.length, width_m:m.width, height_m:m.height, slope_deg:m.slope, snowDepth_cm:m.snowDepth, free:m.free,
     zone_ha:(e.zone && e.zone.length >= 3 ? polygonAreaHa(e.zone).toFixed(2) : ''),
-    ampel:(AMPEL[e.ampel] || ''), ampel_wert:(e.ampelValue != null ? e.ampelValue : ''), tags:(e.tags || []).join('|'), note:e.note, photos:(e.photos ? e.photos.length : 0) };
+    ampel:(ampelText(e) || ''), ampel_wert:(e.ampelValue != null ? e.ampelValue : ''), tags:(e.tags || []).join('|'), note:e.note, photos:(e.photos ? e.photos.length : 0) };
 }
 const csvCell = v => { if (v == null) return ''; const s = String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 async function exportCsv() {
@@ -935,6 +978,7 @@ function bindUI() {
   $('hazardPick').onclick = openHazardPicker;
   $('hazardOverlay').onclick = e => { if (e.target === $('hazardOverlay')) closeHazardPicker(); };
   $('region').onchange = () => { draft.region = $('region').value; draft._regionTouched = true; };
+  $('area').oninput = () => { draft._areaTouched = true; $('areaHint').hidden = true; };
   $('btnAddPhoto').onclick = () => $('photoInput').click();
   $('photoInput').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
   $('ampelRange').oninput = () => setAmpel(+$('ampelRange').value);
