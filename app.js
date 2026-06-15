@@ -45,6 +45,25 @@ const HZ = Object.fromEntries(HAZARDS.map(h => [h.id, h]));
 const REGIONS = ['Alpen', 'Arktis', 'Antarktis'];
 const AMPEL = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot' };
 
+/* ---------- Moderne Gefahren-Icons (SVG, Klar-Stil, Teal-Akzent) ---------- */
+const HAZARD_SVG = {
+  steinschlag: '<path d="M2.5 20.5h19"/><path d="M5 20.5 10.5 10l3 5.5"/><path class="acf" d="M15.8 4l1.9.8-.8 1.9-1.9-.8z"/><path class="acf" d="M18.4 8.3l1.5.6-.6 1.5-1.5-.6z"/><path class="acf" d="M14 9l1.3.5-.5 1.3-1.3-.5z"/>',
+  muren: '<path d="M2.5 20.5h19"/><path d="M2.5 20.5 8 8"/><path class="ac" d="M8 9c1.8 2.2 2.1 4 4.6 5.1"/><path class="ac" d="M8.7 11.7c2 2 3.5 3.4 6.5 3.8"/><path class="ac" d="M9.7 14.7c2.4 1.8 5.3 2.2 8.1 1.9"/><circle class="acf" cx="12.4" cy="13.1" r=".85"/><circle class="acf" cx="15.3" cy="16" r=".85"/>',
+  felssturz: '<path d="M2.5 20.5h19"/><path d="M4 20.5 11 6l6.5 14.5"/><path class="acf" d="M11 6l3-2 3 4-3 2z"/>',
+  permafrost: '<path d="M2.5 20.5h12"/><path d="M3.5 20.5 11 11.5"/><path class="ac" d="M18.5 5v8.6a2.6 2.6 0 1 0 2.4 0V5a1.2 1.2 0 0 0-2.4 0z"/><path class="acf" d="M19.7 14.6a1.6 1.6 0 1 0 .02 0z"/><path class="ac" d="M18.5 8.5h2.4"/>',
+  schadstoff: '<path d="M12 3c3.4 4.4 5.8 7.9 5.8 10.8a5.8 5.8 0 0 1-11.6 0C6.2 10.9 8.6 7.4 12 3z"/><circle class="acf" cx="10.4" cy="14.2" r="1.1"/><circle class="acf" cx="13.6" cy="13" r="1.1"/><circle class="acf" cx="12" cy="16.4" r="1.1"/>',
+  gletscherspalten: '<path d="M3 7.5h18"/><path class="ac" d="M8 7.5l-1.2 3 1.9 1.5-1.2 3 1.5 2.5"/><path class="ac" d="M15 7.5l-1.2 3 1.9 1.5-1.2 3 1.5 2.5"/>',
+  gletscherrueckgang: '<path d="M3 20.5h18"/><path d="M5 20.5v-4h4.5v4M9.5 20.5v-6.5h5v6.5"/><path class="ac" d="M20 9h-6"/><path class="ac" d="M16 6.5 13.5 9 16 11.5"/>',
+  lawinen: '<path d="M3 20.5 11 7l3.4 6"/><path class="ac" d="M11.4 13.6c2.4-1 4.6-.3 6.1 1.3"/><path class="ac" d="M9.7 16.8c3-1.4 6.1-1 8.6 1.1"/><path class="ac" d="M8.2 20c3.4-1.5 7.4-1 10.4 .5"/>',
+  glof: '<path d="M3 19.5h18"/><path d="M3 19.5V10h6.5"/><path class="ac" d="M9.5 10c1.8 0 1.8 2.8 3.7 2.8s1.9-2.8 3.7-2.8 1.9 2.8 3.6 2.8"/><path class="ac" d="M9.5 14.6c1.8 0 1.8 2.6 3.7 2.6s1.9-2.6 3.7-2.6 1.9 2.6 3.6 2.6"/>',
+  schelfeis: '<path d="M3 9h11.5V13H3z"/><path class="acf" d="M15 8.6l4.2 .5-.5 4.2-4.2-.5z"/><path class="ac" d="M3 17q2.5-1.6 5 0t5 0 5 0 5 0"/><path class="ac" d="M3 20.2q2.5-1.6 5 0t5 0 5 0 5 0"/>',
+  meereis: '<path d="M3 18.2q2.5-1.6 5 0t5 0 5 0 5 0"/><path d="M3 21.2q2.5-1.6 5 0t5 0 5 0 5 0"/><path class="acf" d="M5.5 11l4.5-1.2 2.2 3.2-3.4 2-3.3-1z"/><path class="acf" d="M14 8.5l4.4 1.2 1 3.3-4.3 1.1-2.1-3.1z"/>',
+  thermokarst: '<path d="M3 15h3.5l2 3 2-3h1.5l2 3 2-3h4"/><circle class="acf" cx="8.5" cy="9.5" r="1.3"/><circle class="acf" cx="12.5" cy="7" r="1"/><circle class="acf" cx="11" cy="11.5" r=".9"/>',
+};
+function hazardGlyph(id, size = 24) {
+  return `<svg class="haz-svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${HAZARD_SVG[id] || ''}</svg>`;
+}
+
 /* ---------- WMO-Wettercodes (kurz, deutsch) ---------- */
 const WMO = {
   0:['Klar','☀️'],1:['Überw. klar','🌤️'],2:['Teils bewölkt','⛅'],3:['Bedeckt','☁️'],
@@ -129,6 +148,7 @@ const isOnline = () => navigator.onLine;
 let map, baseLayers = {}, overlays = {}, layersControl, posMarker, gpsCircle, gpsDot, entriesLayer;
 let activeLayerKey = 'topo';
 let watchId = null, locationManual = false;
+let drawing = false, drawPts = null, drawLine = null, draftZoneLayer = null, lastDrawPt = null;
 let draft = null;          // aktueller Entwurf
 let editingId = null;      // bei Bearbeitung gesetzt
 let autoEdit = false;      // Auto-Felder im Bearbeiten-Modus?
@@ -141,7 +161,7 @@ function blankAuto() {
 }
 function newDraft() {
   draft = { id: uuid(), createdAt: nowISO(), updatedAt: nowISO(), hazard: HAZARDS[0].id, region: 'Alpen',
-    area:'', measures:{}, note:'', ampel:'', tags:[], photos:[], auto: blankAuto() };
+    area:'', measures:{}, note:'', ampel:'', tags:[], photos:[], zone: null, auto: blankAuto() };
   editingId = null; autoEdit = false;
 }
 
@@ -180,7 +200,7 @@ function initMap() {
   map.on('baselayerchange', e => {
     activeLayerKey = Object.keys(TILES).find(k => TILES[k].name === e.name) || 'topo';
   });
-  map.on('click', e => setLocation(e.latlng.lat, e.latlng.lng, null, 'Karte', true));
+  map.on('click', e => { if (!drawing) setLocation(e.latlng.lat, e.latlng.lng, null, 'Karte', true); });
   setTimeout(() => map.invalidateSize(), 200);
 }
 const tealIcon = L.divIcon({ className: '', iconSize: [30, 42], iconAnchor: [15, 40], popupAnchor: [0, -36],
@@ -223,19 +243,24 @@ function drawGps(p) {
 const AMP_COLOR = { gruen: '#2E9E5B', gelb: '#E0A500', rot: '#C0392B' };
 function entryIcon(e) {
   const c = AMP_COLOR[e.ampel] || '#5E6B6B';
-  const h = HZ[e.hazard] || { icon: '•' };
-  return L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
-    html: `<div class="map-pin" style="border-color:${c}"><span>${h.icon}</span></div>` });
+  return L.divIcon({ className: '', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -17],
+    html: `<div class="map-pin" style="border-color:${c}">${hazardGlyph(e.hazard, 19)}</div>` });
 }
 function renderEntriesOnMap() {
   if (!map || !entriesLayer) return;
   entriesLayer.clearLayers();
   _entries.forEach(e => {
+    if (e.zone && e.zone.length >= 3) {
+      const zc = AMP_COLOR[e.ampel] || '#5E6B6B';
+      const poly = L.polygon(e.zone, { color: zc, weight: 2, fillColor: zc, fillOpacity: 0.14 });
+      poly.on('click', () => openDetail(e.id));
+      entriesLayer.addLayer(poly);
+    }
     if (!e.auto || e.auto.lat == null) return;
     const h = HZ[e.hazard] || { icon: '•', name: e.hazard };
     const m = L.marker([e.auto.lat, e.auto.lon], { icon: entryIcon(e), title: h.name });
     const node = document.createElement('div'); node.className = 'map-pop';
-    node.innerHTML = `<b>${h.icon} ${escHtml(h.name)}</b><div class="m">${escHtml((e.region || '') + (e.area ? ' · ' + e.area : ''))}<br>${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div>`;
+    node.innerHTML = `<b>${hazardGlyph(e.hazard, 16)} ${escHtml(h.name)}</b><div class="m">${escHtml((e.region || '') + (e.area ? ' · ' + e.area : ''))}<br>${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div>`;
     const btn = document.createElement('button'); btn.className = 'btn small secondary'; btn.type = 'button'; btn.textContent = 'Detail öffnen';
     btn.onclick = () => { map.closePopup(); openDetail(e.id); };
     node.appendChild(btn);
@@ -249,6 +274,79 @@ function fitEntries() {
   if (pts.length === 1) map.setView(pts[0], Math.max(map.getZoom(), 13));
   else map.fitBounds(L.latLngBounds(pts).pad(0.25));
 }
+
+/* ---------- Zone zeichnen (Stift / Finger / Maus, freihand) ---------- */
+function polygonAreaHa(latlngs) {
+  if (!latlngs || latlngs.length < 3) return 0;
+  const R = 6378137, rad = Math.PI / 180; let s = 0;
+  for (let i = 0; i < latlngs.length; i++) {
+    const a = latlngs[i], b = latlngs[(i + 1) % latlngs.length];
+    s += (b[1] - a[1]) * rad * (2 + Math.sin(a[0] * rad) + Math.sin(b[0] * rad));
+  }
+  return Math.abs(s * R * R / 2) / 10000;
+}
+function toggleDraw() { drawing ? endDrawMode() : startDrawMode(); }
+function startDrawMode() {
+  drawing = true;
+  $('btnDraw').classList.add('active');
+  map.getContainer().classList.add('drawing');
+  map.dragging.disable(); map.doubleClickZoom.disable();
+  map.getContainer().addEventListener('pointerdown', drawStart);
+  toast('Zone mit Stift/Finger umfahren');
+}
+function endDrawMode() {
+  drawing = false;
+  $('btnDraw').classList.remove('active');
+  const c = map.getContainer();
+  c.classList.remove('drawing');
+  map.dragging.enable(); map.doubleClickZoom.enable();
+  c.removeEventListener('pointerdown', drawStart);
+  c.removeEventListener('pointermove', drawMove);
+  c.removeEventListener('pointerup', drawEnd);
+}
+function drawStart(ev) {
+  ev.preventDefault();
+  const c = map.getContainer();
+  try { c.setPointerCapture(ev.pointerId); } catch (e) {}
+  drawPts = []; lastDrawPt = null;
+  if (drawLine) { map.removeLayer(drawLine); drawLine = null; }
+  drawLine = L.polyline([], { color: '#C0392B', weight: 3, dashArray: '5 4' }).addTo(map);
+  addDrawPoint(ev);
+  c.addEventListener('pointermove', drawMove);
+  c.addEventListener('pointerup', drawEnd);
+}
+function addDrawPoint(ev) {
+  const p = map.mouseEventToContainerPoint(ev);
+  if (lastDrawPt && p.distanceTo(lastDrawPt) < 6) return;
+  lastDrawPt = p;
+  const ll = map.containerPointToLatLng(p);
+  drawPts.push([ll.lat, ll.lng]);
+  drawLine.addLatLng(ll);
+}
+function drawMove(ev) { ev.preventDefault(); addDrawPoint(ev); }
+function drawEnd() {
+  const c = map.getContainer();
+  c.removeEventListener('pointermove', drawMove);
+  c.removeEventListener('pointerup', drawEnd);
+  if (drawLine) { map.removeLayer(drawLine); drawLine = null; }
+  if (drawPts && drawPts.length >= 3) {
+    draft.zone = drawPts;
+    renderDraftZone();
+    toast(`Zone gespeichert · ${polygonAreaHa(draft.zone).toFixed(1)} ha`);
+  } else { toast('Zu wenig Punkte – Zone neu umfahren', true); }
+  endDrawMode();
+}
+function renderDraftZone() {
+  if (!map) return;
+  if (draftZoneLayer) { map.removeLayer(draftZoneLayer); draftZoneLayer = null; }
+  if (draft && draft.zone && draft.zone.length >= 3) {
+    const c = AMP_COLOR[draft.ampel] || '#006064';
+    draftZoneLayer = L.polygon(draft.zone, { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 }).addTo(map);
+    $('zoneBar').hidden = false;
+    $('zoneInfo').textContent = `Zone gezeichnet · ${polygonAreaHa(draft.zone).toFixed(1)} ha`;
+  } else { $('zoneBar').hidden = true; }
+}
+function clearZone() { draft.zone = null; renderDraftZone(); toast('Zone gelöscht'); }
 
 /* ---------- Tile-Caching: aktuellen Ausschnitt offline sichern ---------- */
 function lon2tile(lon, z) { return Math.floor((lon + 180) / 360 * 2**z); }
@@ -505,10 +603,24 @@ function renderAutoEditor() {
    Formular: Maße, Gefahr, Region
    ============================================================ */
 function fillSelects() {
-  $('hazard').innerHTML = HAZARDS.map(h => `<option value="${h.id}">${h.icon}  ${h.name}</option>`).join('');
+  $('hazard').innerHTML = HAZARDS.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
   $('region').innerHTML = REGIONS.map(r => `<option>${r}</option>`).join('');
-  $('filterHazard').innerHTML = '<option value="">Alle Gefahren</option>' + HAZARDS.map(h => `<option value="${h.id}">${h.icon} ${h.name}</option>`).join('');
+  $('filterHazard').innerHTML = '<option value="">Alle Gefahren</option>' + HAZARDS.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  $('hazardGrid').innerHTML = HAZARDS.map(h => `<button type="button" class="haz-cell" data-id="${h.id}">${hazardGlyph(h.id, 30)}<span>${escHtml(h.name)}</span></button>`).join('');
+  $('hazardGrid').querySelectorAll('.haz-cell').forEach(b => b.onclick = () => selectHazard(b.dataset.id));
 }
+function selectHazard(id) {
+  draft.hazard = id; $('hazard').value = id;
+  renderMeasures(); updateHazardPick(); closeHazardPicker();
+}
+function updateHazardPick() {
+  const h = HZ[draft.hazard] || HAZARDS[0];
+  $('hpIco').innerHTML = hazardGlyph(draft.hazard, 24);
+  $('hpName').textContent = h.name;
+  $('hazardGrid').querySelectorAll('.haz-cell').forEach(b => b.classList.toggle('active', b.dataset.id === draft.hazard));
+}
+function openHazardPicker() { updateHazardPick(); $('hazardOverlay').classList.add('open'); }
+function closeHazardPicker() { $('hazardOverlay').classList.remove('open'); }
 function renderMeasures() {
   const h = HZ[draft.hazard]; const box = $('measures');
   box.innerHTML = h.measures.map(m => {
@@ -594,7 +706,7 @@ function loadFormFromDraft() {
   $('note').value = draft.note || '';
   $('tags').value = (draft.tags || []).join(', ');
   document.querySelectorAll('input[name="ampel"]').forEach(r => r.checked = (r.value === draft.ampel));
-  renderMeasures(); renderPhotos(); renderAuto();
+  renderMeasures(); renderPhotos(); renderAuto(); updateHazardPick(); renderDraftZone();
   autoEdit = false; $('autoEditor').hidden = true; $('btnAutoEdit').textContent = '✎ Bearbeiten'; $('btnAutoEdit').setAttribute('aria-expanded', 'false');
   $('btnReset').hidden = !editingId;
   $('btnSave').textContent = editingId ? 'Änderungen speichern' : 'Eintrag speichern';
@@ -628,7 +740,7 @@ function renderList() {
     const h = HZ[e.hazard] || { icon:'•', name:e.hazard };
     const loc = e.auto && e.auto.lat != null ? `${e.region} · ${e.area || e.auto.lat.toFixed(3) + ',' + e.auto.lon.toFixed(3)}` : (e.area || e.region || '');
     const ph = e.photos && e.photos[0];
-    const thumb = ph ? `<img data-blob="${e.id}" alt="">` : h.icon;
+    const thumb = ph ? `<img data-blob="${e.id}" alt="">` : hazardGlyph(e.hazard, 28);
     return `<button class="entry" data-id="${e.id}">
       <span class="ph" data-ph="${e.id}">${thumb}</span>
       <span class="body"><span class="top"><span class="hz">${escHtml(h.name)}</span>${e.ampel ? `<span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</span>
@@ -651,6 +763,7 @@ function detailRows(e) {
   add('Abfluss-Proxy', a.river != null ? a.river + ' m³/s' + (a.rivStatus === 'manual' ? ' · manuell' : ' · GloFAS') : null);
   const h = HZ[e.hazard];
   if (h) h.measures.forEach(m => { if (e.measures && e.measures[m[0]] != null && e.measures[m[0]] !== '') { const def = M[m[0]]; add(m[1] || def.label, e.measures[m[0]] + (def.unit ? ' ' + (m[2] || def.unit) : '')); } });
+  if (e.zone && e.zone.length >= 3) add('Zone (gezeichnet)', polygonAreaHa(e.zone).toFixed(1) + ' ha');
   add('Tags', (e.tags || []).join(', '));
   return rows;
 }
@@ -661,7 +774,7 @@ function openDetail(id) {
   const pending = e.auto && ['pending','failed'].includes([e.auto.wxStatus, e.auto.rivStatus, e.auto.avyStatus, e.auto.eleStatus].find(s => s === 'pending' || s === 'failed'));
   const linkHtml = (e.auto && e.auto.avyLink && (!e.auto.avyLevel)) ? `<p class="hint">Lawinenbulletin: <a href="${e.auto.avyLink.url}" target="_blank" rel="noopener">${escHtml(e.auto.avyLink.name)}</a></p>` : '';
   sheet.innerHTML = `<div class="grip"></div>
-    <div class="detail-head"><span class="hz-ico">${h.icon}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ' · ' : ''}${e.ampel ? `<span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div></div></div>
+    <div class="detail-head"><span class="hz-ico">${hazardGlyph(e.hazard, 30)}</span><div><h2>${escHtml(h.name)}</h2><div class="hint">${fmtDateTime(e.createdAt)}${e.ampel ? ' · ' : ''}${e.ampel ? `<span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div></div></div>
     ${e.photos && e.photos.length ? `<div class="detail-photos" id="detailPhotos"></div>` : ''}
     ${e.note ? `<p style="white-space:pre-wrap;margin:.4em 0 .6em">${escHtml(e.note)}</p>` : ''}
     <dl class="kv">${detailRows(e).map(r => `<dt>${escHtml(r[0])}</dt><dd>${escHtml(r[1])}</dd>`).join('')}</dl>
@@ -688,13 +801,14 @@ function editEntry(e) {
 /* ============================================================
    Export / Import
    ============================================================ */
-const CSV_COLS = ['id','createdAt','hazard','region','area','lat','lon','accuracy_m','elevation_m','temp_C','wind_kmh','gust_kmh','windDir_deg','precip_mm','cloud_pct','weather','freezing_m','avalanche_level','avalanche_region','river_m3s','volume_m3','distance_m','length_m','width_m','height_m','slope_deg','snowDepth_cm','free','ampel','tags','note','photos'];
+const CSV_COLS = ['id','createdAt','hazard','region','area','lat','lon','accuracy_m','elevation_m','temp_C','wind_kmh','gust_kmh','windDir_deg','precip_mm','cloud_pct','weather','freezing_m','avalanche_level','avalanche_region','river_m3s','volume_m3','distance_m','length_m','width_m','height_m','slope_deg','snowDepth_cm','free','zone_ha','ampel','tags','note','photos'];
 function entryToRow(e) {
   const a = e.auto || {}, m = e.measures || {};
   return { id:e.id, createdAt:e.createdAt, hazard:(HZ[e.hazard] ? HZ[e.hazard].name : e.hazard), region:e.region, area:e.area,
     lat:a.lat, lon:a.lon, accuracy_m:a.accuracy, elevation_m:a.ele, temp_C:a.temp, wind_kmh:a.wind, gust_kmh:a.gust, windDir_deg:a.windDir,
     precip_mm:a.precip, cloud_pct:a.cloud, weather:wmoText(a.wcode), freezing_m:a.freezing, avalanche_level:a.avyLevel, avalanche_region:a.avyRegion, river_m3s:a.river,
     volume_m3:m.volume, distance_m:m.distance, length_m:m.length, width_m:m.width, height_m:m.height, slope_deg:m.slope, snowDepth_cm:m.snowDepth, free:m.free,
+    zone_ha:(e.zone && e.zone.length >= 3 ? polygonAreaHa(e.zone).toFixed(2) : ''),
     ampel:(AMPEL[e.ampel] || ''), tags:(e.tags || []).join('|'), note:e.note, photos:(e.photos ? e.photos.length : 0) };
 }
 const csvCell = v => { if (v == null) return ''; const s = String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
@@ -750,6 +864,7 @@ async function refreshStats() {
   $('statSize').textContent = bytes ? (bytes / 1048576).toFixed(1) + ' MB' : '–';
 }
 function switchView(v) {
+  if (drawing && v !== 'erfassen') endDrawMode();
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   if (v === 'verlauf') refreshList();
@@ -787,11 +902,15 @@ function bindUI() {
   document.querySelectorAll('.tabbar button').forEach(b => b.onclick = () => switchView(b.dataset.view));
   $('btnGps').onclick = startGps;
   $('btnLocate').onclick = startGps;
+  $('btnDraw').onclick = toggleDraw;
+  $('btnZoneClear').onclick = clearZone;
   $('btnFitEntries').onclick = fitEntries;
   $('btnSaveTiles').onclick = saveTiles;
   $('btnRefetch').onclick = async () => { if (!isOnline()) { toast('Offline – Werte werden später nachgeladen', true); return; } toast('Lade Online-Werte …'); await enrichObj(draft.auto, true); renderAuto(); toast('Online-Werte aktualisiert'); };
   $('btnAutoEdit').onclick = () => { autoEdit = !autoEdit; $('autoEditor').hidden = !autoEdit; $('btnAutoEdit').setAttribute('aria-expanded', String(autoEdit)); $('btnAutoEdit').textContent = autoEdit ? '▾ Schließen' : '✎ Bearbeiten'; if (autoEdit) renderAutoEditor(); };
-  $('hazard').onchange = () => { draft.hazard = $('hazard').value; renderMeasures(); };
+  $('hazard').onchange = () => { draft.hazard = $('hazard').value; renderMeasures(); updateHazardPick(); };
+  $('hazardPick').onclick = openHazardPicker;
+  $('hazardOverlay').onclick = e => { if (e.target === $('hazardOverlay')) closeHazardPicker(); };
   $('region').onchange = () => { draft.region = $('region').value; draft._regionTouched = true; };
   $('btnAddPhoto').onclick = () => $('photoInput').click();
   $('photoInput').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };

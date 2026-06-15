@@ -39,11 +39,16 @@
       <div id="map"></div>
       <div class="map-tools">
         <button id="btnLocate" title="Mein Standort">◎</button>
+        <button id="btnDraw" title="Zone zeichnen (Stift/Finger)">✎</button>
         <button id="btnFitEntries" title="Alle Beobachtungen zeigen">◇</button>
         <button id="btnSaveTiles" title="Aktuellen Ausschnitt offline sichern">⤓</button>
       </div>
     </div>
-    <span class="map-hint">Tippen setzt den Ort · ◎ GPS · ◇ alle Beobachtungen · ⤓ Ausschnitt offline. Gespeicherte Beobachtungen erscheinen als ampelfarbene Marker (antippen → Detail).</span>
+    <span class="map-hint">Tippen setzt den Ort · ◎ GPS · ✎ Zone zeichnen · ◇ alle Beobachtungen · ⤓ Ausschnitt offline. Gespeicherte Beobachtungen erscheinen als ampelfarbene Marker (antippen → Detail).</span>
+    <div id="zoneBar" class="zone-bar" hidden>
+      <span id="zoneInfo"></span>
+      <button type="button" id="btnZoneClear" class="btn small ghost">Zone löschen</button>
+    </div>
 
     <form id="entryForm" autocomplete="off" novalidate>
       <input type="hidden" id="entryId">
@@ -101,7 +106,10 @@
 
         <label class="field">
           <span class="lab">Gefahrentyp</span>
-          <select id="hazard" required></select>
+          <button type="button" id="hazardPick" class="hazard-pick" aria-haspopup="dialog">
+            <span class="hp-ico" id="hpIco"></span><span class="hp-name" id="hpName">–</span><span class="hp-chev">▾</span>
+          </button>
+          <select id="hazard" required hidden></select>
         </label>
 
         <div class="row2">
@@ -201,6 +209,15 @@
 <!-- Detail overlay -->
 <div class="overlay" id="overlay">
   <div class="sheet" id="detailSheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- Gefahrentyp-Picker -->
+<div class="overlay" id="hazardOverlay">
+  <div class="sheet" id="hazardSheet" role="dialog" aria-modal="true" aria-label="Gefahrentyp wählen">
+    <div class="grip"></div>
+    <h2 style="font-size:17px;margin:0 0 10px">Gefahrentyp wählen</h2>
+    <div class="hazard-grid" id="hazardGrid"></div>
+  </div>
 </div>
 
 <nav class="tabbar">

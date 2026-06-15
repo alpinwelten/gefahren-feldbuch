@@ -203,6 +203,33 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--color-brand
 .hazard-current { display: flex; align-items: center; gap: 9px; font-weight: 700; }
 .hazard-current .hz-ico { font-size: 22px; }
 
+/* ---------- SVG-Gefahren-Icons ---------- */
+.haz-svg { fill: none; stroke: var(--color-text); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; }
+.haz-svg .ac { stroke: var(--color-brand); }
+.haz-svg .acf { fill: var(--color-brand); stroke: none; }
+.map-pin .haz-svg { stroke-width: 2; }
+.map-pop b .haz-svg { vertical-align: -3px; }
+
+/* Gefahrentyp-Picker */
+.hazard-pick { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--tap); padding: 7px 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: #fff; cursor: pointer; text-align: left; }
+.hazard-pick:focus-visible { outline: 2px solid var(--color-brand); outline-offset: -1px; }
+.hazard-pick .hp-ico { width: 28px; height: 28px; flex: 0 0 auto; display: grid; place-items: center; }
+.hazard-pick .hp-name { flex: 1 1 auto; font-weight: 700; font-size: 15px; min-width: 0; }
+.hazard-pick .hp-chev { color: var(--color-meta); }
+.hazard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+@media (max-width: 360px) { .hazard-grid { grid-template-columns: repeat(2, 1fr); } }
+.haz-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: #fff; cursor: pointer; font-size: 11.5px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--color-text); }
+.haz-cell .haz-svg { width: 30px; height: 30px; }
+.haz-cell.active { border-color: var(--color-brand); background: var(--color-surface); }
+.haz-cell:active { background: var(--color-surface); }
+
+/* Zone zeichnen */
+.zone-bar { display: flex; align-items: center; gap: 10px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 7px 10px; margin: -4px 0 12px; font-size: 13px; }
+.zone-bar #zoneInfo { flex: 1; font-weight: 600; min-width: 0; }
+#map.drawing, #map.drawing .leaflet-grab { cursor: crosshair; }
+#map.drawing { touch-action: none; }
+.map-tools button.active { background: var(--color-brand); color: #fff; border-color: var(--color-brand); }
+
 /* ---------- Ampel selector ---------- */
 .ampel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .ampel input { position: absolute; opacity: 0; pointer-events: none; }
