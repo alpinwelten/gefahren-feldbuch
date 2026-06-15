@@ -126,7 +126,7 @@ const isOnline = () => navigator.onLine;
 /* ============================================================
    App-State
    ============================================================ */
-let map, baseLayers = {}, layersControl, posMarker, gpsCircle, gpsDot;
+let map, baseLayers = {}, layersControl, posMarker, gpsCircle, gpsDot, entriesLayer;
 let activeLayerKey = 'topo';
 let watchId = null, locationManual = false;
 let draft = null;          // aktueller Entwurf
@@ -159,7 +159,8 @@ function initMap() {
   baseLayers[TILES.sat.name] = makeLayer('sat');
   baseLayers[TILES.osm.name] = makeLayer('osm');
   baseLayers[TILES.swisstopo.name] = makeLayer('swisstopo');
-  layersControl = L.control.layers(baseLayers, null, { collapsed: true }).addTo(map);
+  entriesLayer = L.layerGroup().addTo(map);
+  layersControl = L.control.layers(baseLayers, { 'Beobachtungen': entriesLayer }, { collapsed: true }).addTo(map);
   map.on('baselayerchange', e => {
     activeLayerKey = Object.keys(TILES).find(k => TILES[k].name === e.name) || 'topo';
   });
@@ -200,6 +201,37 @@ function drawGps(p) {
   if (!gpsCircle) { gpsCircle = L.circle(ll, { radius: acc, color: '#1565C0', fillColor: '#1E88E5', fillOpacity: .12, weight: 1 }).addTo(map);
     gpsDot = L.circleMarker(ll, { radius: 5, color: '#fff', weight: 2, fillColor: '#1565C0', fillOpacity: 1 }).addTo(map);
   } else { gpsCircle.setLatLng(ll).setRadius(acc); gpsDot.setLatLng(ll); }
+}
+
+/* ---------- Gespeicherte Beobachtungen auf der Karte ---------- */
+const AMP_COLOR = { gruen: '#2E9E5B', gelb: '#E0A500', rot: '#C0392B' };
+function entryIcon(e) {
+  const c = AMP_COLOR[e.ampel] || '#5E6B6B';
+  const h = HZ[e.hazard] || { icon: '•' };
+  return L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
+    html: `<div class="map-pin" style="border-color:${c}"><span>${h.icon}</span></div>` });
+}
+function renderEntriesOnMap() {
+  if (!map || !entriesLayer) return;
+  entriesLayer.clearLayers();
+  _entries.forEach(e => {
+    if (!e.auto || e.auto.lat == null) return;
+    const h = HZ[e.hazard] || { icon: '•', name: e.hazard };
+    const m = L.marker([e.auto.lat, e.auto.lon], { icon: entryIcon(e), title: h.name });
+    const node = document.createElement('div'); node.className = 'map-pop';
+    node.innerHTML = `<b>${h.icon} ${escHtml(h.name)}</b><div class="m">${escHtml((e.region || '') + (e.area ? ' · ' + e.area : ''))}<br>${fmtDateTime(e.createdAt)}${e.ampel ? ` · <span class="chip ${e.ampel}">${AMPEL[e.ampel]}</span>` : ''}</div>`;
+    const btn = document.createElement('button'); btn.className = 'btn small secondary'; btn.type = 'button'; btn.textContent = 'Detail öffnen';
+    btn.onclick = () => { map.closePopup(); openDetail(e.id); };
+    node.appendChild(btn);
+    m.bindPopup(node);
+    entriesLayer.addLayer(m);
+  });
+}
+function fitEntries() {
+  const pts = _entries.filter(e => e.auto && e.auto.lat != null).map(e => [e.auto.lat, e.auto.lon]);
+  if (!pts.length) { toast('Noch keine verorteten Beobachtungen'); return; }
+  if (pts.length === 1) map.setView(pts[0], Math.max(map.getZoom(), 13));
+  else map.fitBounds(L.latLngBounds(pts).pad(0.25));
 }
 
 /* ---------- Tile-Caching: aktuellen Ausschnitt offline sichern ---------- */
@@ -563,6 +595,7 @@ let _entries = [];
 async function refreshList() {
   _entries = (await dbGetAll()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   renderList();
+  renderEntriesOnMap();
 }
 function renderList() {
   const q = ($('search').value || '').toLowerCase().trim();
@@ -738,6 +771,7 @@ function bindUI() {
   document.querySelectorAll('.tabbar button').forEach(b => b.onclick = () => switchView(b.dataset.view));
   $('btnGps').onclick = startGps;
   $('btnLocate').onclick = startGps;
+  $('btnFitEntries').onclick = fitEntries;
   $('btnSaveTiles').onclick = saveTiles;
   $('btnRefetch').onclick = async () => { if (!isOnline()) { toast('Offline – Werte werden später nachgeladen', true); return; } toast('Lade Online-Werte …'); await enrichObj(draft.auto, true); renderAuto(); toast('Online-Werte aktualisiert'); };
   $('btnAutoEdit').onclick = () => { autoEdit = !autoEdit; $('autoEditor').hidden = !autoEdit; $('btnAutoEdit').setAttribute('aria-expanded', String(autoEdit)); $('btnAutoEdit').textContent = autoEdit ? '▾ Schließen' : '✎ Bearbeiten'; if (autoEdit) renderAutoEditor(); };
