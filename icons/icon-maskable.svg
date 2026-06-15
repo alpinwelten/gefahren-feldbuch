@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#006064"/>
+  <!-- content kept inside the inner 80% safe zone (scaled ~0.62, centered) -->
+  <g transform="translate(98 104) scale(0.615)">
+    <circle cx="372" cy="150" r="40" fill="#F0FAFA" opacity="0.18"/>
+    <path d="M40 388 L150 250 L228 348 L300 232 L472 388 Z" fill="#3E969A" opacity="0.55"/>
+    <path d="M40 388 L196 168 L300 312 L356 236 L472 388 Z" fill="#FFFFFF"/>
+    <path d="M196 168 L300 312 L246 312 L196 244 Z" fill="#BA8A52"/>
+    <path d="M196 168 L168 208 L196 226 L224 200 Z" fill="#F0FAFA"/>
+    <path d="M356 236 L338 262 L356 274 L374 256 Z" fill="#F0FAFA"/>
+    <rect x="40" y="384" width="432" height="10" rx="5" fill="#33605F"/>
+    <circle cx="150" cy="432" r="15" fill="#2E9E5B"/>
+    <circle cx="196" cy="432" r="15" fill="#E0A500"/>
+    <circle cx="242" cy="432" r="15" fill="#C0392B"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Es gehören KEINE Beobachtungsdaten ins Repo – diese liegen nur lokal
+# im Browser (IndexedDB). Versehentlich exportierte Backups ausschließen:
+feldbuch_*.csv
+feldbuch_backup_*.json
+*.backup.json

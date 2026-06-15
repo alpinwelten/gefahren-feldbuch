@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="theme-color" content="#006064">
+<meta name="description" content="Digitales Feldbuch für objektive Gebirgs- und Polargefahren – online und offline, Daten bleiben auf dem Gerät.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Feldbuch">
+<title>Gefahren-Feldbuch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <span class="logo" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 20h18L14.5 7l-3.2 5.6-2.1-3L3 20z" fill="#fff"/><path d="M11.3 12.6 14.5 7l2.4 4.8-2 .2-1.3 1.7-2.3-1.1z" fill="#BA8A52"/></svg>
+  </span>
+  <h1>Gefahren-Feldbuch</h1>
+  <span id="netBadge" class="net-badge" aria-live="polite">…</span>
+  <button id="infoBtn" class="icon-btn" title="Hinweise & Datenschutz" aria-label="Hinweise">ℹ︎</button>
+</header>
+
+<main>
+  <!-- ============ ERFASSEN ============ -->
+  <section id="view-erfassen" class="view active" aria-label="Erfassen">
+
+    <div id="privacy" class="privacy" hidden>
+      <span><b>Hinweis:</b> Alle Einträge und Fotos bleiben <b>lokal auf diesem Gerät</b> (kein Server). Bei Online-Abruf wird deine <b>Position</b> an Karten-, Wetter- und Lawinendienste gesendet. Geh sparsam mit Personendaten um (erkennbare Personen auf Fotos, Namen).</span>
+      <button id="privacyClose" aria-label="Schließen">×</button>
+    </div>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-tools">
+        <button id="btnLocate" title="Mein Standort">◎</button>
+        <button id="btnSaveTiles" title="Aktuellen Ausschnitt offline sichern">⤓</button>
+      </div>
+    </div>
+    <span class="map-hint">Tippen auf die Karte setzt/korrigiert den Ort manuell. ◎ = GPS · ⤓ = Ausschnitt offline sichern.</span>
+
+    <form id="entryForm" autocomplete="off" novalidate>
+      <input type="hidden" id="entryId">
+
+      <div class="now-row">
+        <span>Erfasst <span id="nowTs" class="ts">–</span></span>
+        <button type="button" id="btnGps" class="btn small secondary">◎ GPS aktualisieren</button>
+      </div>
+
+      <!-- Auto-erfasste Werte -->
+      <div class="card surface">
+        <div class="section-title">Automatisch erfasst</div>
+        <div class="auto-grid">
+          <div class="auto-item" id="auto-loc">
+            <div class="lbl">Standort <span class="pill manual" id="loc-state">–</span></div>
+            <div class="val" id="loc-val">–</div>
+            <div class="src" id="loc-src"></div>
+          </div>
+          <div class="auto-item" id="auto-ele">
+            <div class="lbl">Höhe <span class="pill" id="ele-state">–</span></div>
+            <div class="val" id="ele-val">–</div>
+            <div class="src" id="ele-src"></div>
+          </div>
+          <div class="auto-item" id="auto-wx">
+            <div class="lbl">Wetter <span class="pill" id="wx-state">–</span></div>
+            <div class="val" id="wx-val">–</div>
+            <div class="src" id="wx-src"></div>
+          </div>
+          <div class="auto-item" id="auto-frz">
+            <div class="lbl">Nullgradgrenze <span class="pill" id="frz-state">–</span></div>
+            <div class="val" id="frz-val">–</div>
+            <div class="src" id="frz-src"></div>
+          </div>
+          <div class="auto-item" id="auto-ava">
+            <div class="lbl">Lawinenstufe <span class="pill" id="ava-state">–</span></div>
+            <div class="val" id="ava-val">–</div>
+            <div class="src" id="ava-src"></div>
+          </div>
+          <div class="auto-item" id="auto-riv">
+            <div class="lbl">Abfluss-Proxy <span class="pill" id="riv-state">–</span></div>
+            <div class="val" id="riv-val">–</div>
+            <div class="src" id="riv-src"></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="button" id="btnRefetch" class="btn small ghost">↻ Nachladen</button>
+          <button type="button" id="btnAutoEdit" class="btn small ghost" aria-expanded="false">✎ Bearbeiten</button>
+        </div>
+        <div id="autoEditor" class="auto-editor" hidden></div>
+      </div>
+
+      <!-- Beobachtung -->
+      <div class="card">
+        <div class="section-title">Beobachtung</div>
+
+        <label class="field">
+          <span class="lab">Gefahrentyp</span>
+          <select id="hazard" required></select>
+        </label>
+
+        <div class="row2">
+          <label class="field">
+            <span class="lab">Region</span>
+            <select id="region"></select>
+          </label>
+          <label class="field">
+            <span class="lab">Gebiet / Name</span>
+            <input type="text" id="area" placeholder="z. B. Triftgletscher">
+          </label>
+        </div>
+
+        <span class="lab" style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Maße</span>
+        <div class="measures-grid" id="measures"></div>
+
+        <label class="field" style="margin-top:11px;">
+          <span class="lab">Erkenntnis / Beobachtung</span>
+          <textarea id="note" placeholder="Was ist beobachtbar? Vorläufer, Veränderung gegenüber früher, Konsequenz für die Tour …"></textarea>
+        </label>
+
+        <span class="lab" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Fotos</span>
+        <div class="photo-row" id="photoRow">
+          <button type="button" class="photo-add" id="btnAddPhoto"><span>＋</span>Foto</button>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+
+        <span class="lab" style="font-size:13px;font-weight:600;display:block;margin:13px 0 6px;">Eigene Einschätzung (Ampel)</span>
+        <div class="ampel">
+          <input type="radio" name="ampel" id="ampel-gruen" value="gruen">
+          <label for="ampel-gruen" class="a-gruen"><span class="dot gruen"></span>Grün</label>
+          <input type="radio" name="ampel" id="ampel-gelb" value="gelb">
+          <label for="ampel-gelb" class="a-gelb"><span class="dot gelb"></span>Gelb</label>
+          <input type="radio" name="ampel" id="ampel-rot" value="rot">
+          <label for="ampel-rot" class="a-rot"><span class="dot rot"></span>Rot</label>
+        </div>
+
+        <label class="field" style="margin-top:13px;">
+          <span class="lab">Tags <span class="muted" style="font-weight:400;">(optional, Komma-getrennt)</span></span>
+          <input type="text" id="tags" placeholder="z. B. Vorläufer, Sentinel-1, Wegfall Schneebrücke">
+        </label>
+      </div>
+
+      <div class="sticky-save">
+        <div class="btn-row">
+          <button type="button" id="btnReset" class="btn ghost" hidden>Verwerfen</button>
+          <button type="submit" id="btnSave" class="btn">Eintrag speichern</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ VERLAUF ============ -->
+  <section id="view-verlauf" class="view" aria-label="Verlauf">
+    <div class="list-tools">
+      <input type="search" id="search" placeholder="Suchen (Gefahr, Gebiet, Tag …)">
+      <select id="filterHazard" class="btn small ghost" style="min-height:38px;"></select>
+    </div>
+    <div id="entryList"></div>
+  </section>
+
+  <!-- ============ DATEN ============ -->
+  <section id="view-daten" class="view" aria-label="Daten">
+    <div class="card">
+      <div class="section-title">Bestand</div>
+      <div class="stat"><span>Einträge</span><b id="statEntries">0</b></div>
+      <div class="stat"><span>Fotos</span><b id="statPhotos">0</b></div>
+      <div class="stat"><span>Speicher (geschätzt)</span><b id="statSize">–</b></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Export</div>
+      <p class="hint" style="margin-top:0;">CSV für Excel (ohne Fotos) · JSON als vollständiges Backup inkl. Fotos.</p>
+      <div class="btn-row">
+        <button type="button" id="btnExportCsv" class="btn secondary">CSV</button>
+        <button type="button" id="btnExportJson" class="btn secondary">JSON-Backup</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Import</div>
+      <p class="hint" style="margin-top:0;">JSON-Backup einlesen – Einträge werden anhand ihrer ID ohne Duplikate zusammengeführt.</p>
+      <button type="button" id="btnImport" class="btn ghost">JSON-Datei wählen</button>
+      <input type="file" id="importInput" accept="application/json,.json">
+    </div>
+    <div class="card surface">
+      <div class="section-title">Datenschutz & Quellen</div>
+      <p class="hint" style="margin-top:0;line-height:1.5;">
+        Alle Einträge/Fotos liegen ausschließlich lokal in diesem Browser (IndexedDB) – nichts wird hochgeladen.
+        Bei Online-Abruf wird die <b>Position</b> an OpenStreetMap/OpenTopoMap/Esri/swisstopo (Karten),
+        Open-Meteo (Wetter/Höhe/Abfluss) und SLF/avalanche.report/NVE Varsom (Lawine) gesendet.
+        Geh sparsam mit personenbezogenen Daten um.
+      </p>
+      <p class="hint" id="appMeta" style="margin-bottom:0;"></p>
+    </div>
+  </section>
+</main>
+
+<!-- Detail overlay -->
+<div class="overlay" id="overlay">
+  <div class="sheet" id="detailSheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<nav class="tabbar">
+  <button data-view="erfassen" class="active"><span class="ic">＋</span>Erfassen</button>
+  <button data-view="verlauf"><span class="ic">≣</span>Verlauf</button>
+  <button data-view="daten"><span class="ic">⤓</span>Daten</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
