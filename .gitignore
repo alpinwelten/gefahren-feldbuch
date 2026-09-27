@@ -10,3 +10,6 @@ Thumbs.db
 feldbuch_*.csv
 feldbuch_backup_*.json
 *.backup.json
+
+node_modules/
+.next/
